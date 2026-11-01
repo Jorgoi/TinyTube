@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyTube – YouTube URL Shortener & Cleaner</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        yt: {
+                            red: '#FF0033',
+                            dark: '#0f0f0f',
+                            card: '#18181b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar & Smooth Transitions */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.7);
+        }
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #ef4444;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100 min-h-screen flex flex-col font-sans selection:bg-red-500 selection:text-white transition-colors duration-200">
+
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+
+    <!-- Header -->
+    <header class="border-b border-slate-200 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-md shadow-red-500/20 text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/>
+                        <path d="m10 15 5-3-5-3v6Z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg tracking-tight leading-tight">TinyTube</h1>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 hidden sm:block">
+                        Shorten & strip tracking parameters from YouTube links
+                    </p>
+                </div>
+            </div>
+
+
+            <div class="flex items-center gap-2">
+                <!-- Theme Toggle -->
+                <button id="btn-theme" onclick="toggleTheme()" class="p-2 rounded-xl text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 dark:text-zinc-400 dark:hover:text-zinc-100 dark:bg-zinc-800/70 dark:hover:bg-zinc-800 transition" title="Toggle theme">
+                    <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                    <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-5 space-y-4">
+
+
+        <!-- Input Card -->
+        <section class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
+                <label for="url-input" class="font-semibold text-sm flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    Paste YouTube URL(s) or text
+                </label>
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button onclick="pasteFromClipboard()" class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                        Paste
+                    </button>
+                    <button onclick="loadSingleDemo()" class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 transition">
+                        Demo
+                    </button>
+                    <button id="btn-clear" onclick="clearInput()" class="hidden items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 transition">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+
+            <div class="p-4">
+                <textarea 
+                    id="url-input" 
+                    rows="3" 
+                    placeholder="Paste one or multiple YouTube URLs (or a whole message containing links)..."
+                    class="w-full rounded-xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200 dark:border-zinc-800 p-3 text-sm font-mono text-slate-800 dark:text-zinc-200 placeholder:font-sans placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition resize-y"
+                ></textarea>
+
+
+                <!-- Compact Options Bar -->
+                <div class="mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800/80 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none text-slate-700 dark:text-zinc-300">
+                        <input type="checkbox" id="opt-protocol" checked onchange="processInput()" class="w-3.5 h-3.5 accent-red-600 rounded cursor-pointer">
+                        <span>Include <code class="font-mono">https://</code></span>
+                    </label>
+
+
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none text-slate-700 dark:text-zinc-300">
+                        <input type="checkbox" id="opt-timestamp" onchange="processInput()" class="w-3.5 h-3.5 accent-red-600 rounded cursor-pointer">
+                        <span>Keep timestamp (<code class="font-mono">?t=</code>)</span>
+                    </label>
+
+
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none text-slate-700 dark:text-zinc-300">
+                        <input type="checkbox" id="opt-dedupe" checked onchange="processInput()" class="w-3.5 h-3.5 accent-red-600 rounded cursor-pointer">
+                        <span>Remove duplicates</span>
+                    </label>
+
+
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none text-slate-700 dark:text-zinc-300">
+                        <input type="checkbox" id="opt-replace-text" onchange="processInput()" class="w-3.5 h-3.5 accent-red-600 rounded cursor-pointer">
+                        <span>In-text mode</span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Dynamic Output Section -->
+        <section id="output-section" class="space-y-3">
+            <!-- Empty State (Compact) -->
+            <div id="empty-state" class="bg-white/60 dark:bg-zinc-900/40 border border-dashed border-slate-300 dark:border-zinc-800 rounded-2xl p-5 text-center">
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-zinc-400">
+                    Paste one or more YouTube links above — they will be shortened to <span class="font-mono font-semibold text-red-500">youtu.be/ID</span> instantly.
+                </p>
+            </div>
+
+
+            <!-- Single Result Container -->
+            <div id="single-result" class="hidden"></div>
+
+
+            <!-- Replaced Text Container (when In-text mode is active) -->
+            <div id="replaced-text-result" class="hidden"></div>
+
+
+            <!-- Bulk / Collection Result Container -->
+            <div id="bulk-result" class="hidden space-y-2.5"></div>
+        </section>
+
+
+    </main>
+
+
+    <script>
+        // ==========================================
+        // Core YouTube URL Parser & Cleaner
+        // ==========================================
+
+
+        const inputEl = document.getElementById('url-input');
+        const emptyStateEl = document.getElementById('empty-state');
+        const singleResultEl = document.getElementById('single-result');
+        const bulkResultEl = document.getElementById('bulk-result');
+        const replacedTextResultEl = document.getElementById('replaced-text-result');
+        const btnClear = document.getElementById('btn-clear');
+
+
+        // Listen for live input changes
+        inputEl.addEventListener('input', processInput);
+
+
+        /**
+         * Parses time strings like "120", "120s", "2m30s", "1h2m3s" into clean seconds or clean string
+         */
+        function normalizeTimestamp(rawTime) {
+            if (!rawTime) return null;
+            const cleaned = rawTime.trim();
+            // If purely numeric or numeric with 's'
+            if (/^\d+s?$/i.test(cleaned)) {
+                const secs = parseInt(cleaned, 10);
+                return secs > 0 ? String(secs) : null;
+            }
+            // If formatted like 1h2m3s or 2m10s
+            if (/^(?:\d+h)?(?:\d+m)?(?:\d+s)?$/i.test(cleaned)) {
+                return cleaned.toLowerCase();
+            }
+            return null;
+        }
+
+
+        /**
+         * Extracts Video ID, removed query params, and optional timestamp from a candidate URL string
+         */
+        function analyzeYouTubeCandidate(rawMatch) {
+            // Clean trailing punctuation that might belong to surrounding prose (e.g., ")", ".", ",", "!", "]")
+            let cleanCandidate = rawMatch.replace(/[.,;!?)\]>'"]+$/, '');
+
+
+            // Prepend https:// if missing so URL constructor can parse query parameters cleanly
+            let parseableUrl = cleanCandidate;
+            if (!/^https?:\/\//i.test(parseableUrl)) {
+                parseableUrl = 'https://' + parseableUrl;
+            }
+
+
+            let urlObj;
+            try {
+                urlObj = new URL(parseableUrl);
+            } catch (e) {
+                return null;
+            }
+
+
+            const host = urlObj.hostname.toLowerCase().replace(/^www\./, '');
+            const validHosts = [
+                'youtube.com',
+                'm.youtube.com',
+                'music.youtube.com',
+                'gaming.youtube.com',
+                'youtube-nocookie.com',
+                'youtu.be'
+            ];
+
+
+            if (!validHosts.includes(host)) return null;
+
+
+            let videoId = null;
+            const pathParts = urlObj.pathname.split('/').filter(Boolean);
+
+
+            if (host === 'youtu.be') {
+                if (pathParts[0]) {
+                    videoId = pathParts[0];
+                }
+            } else {
+                // youtube.com variants
+                if (urlObj.searchParams.has('v')) {
+                    videoId = urlObj.searchParams.get('v');
+                } else if (pathParts.length >= 2 && ['shorts', 'embed', 'live', 'v', 'e'].includes(pathParts[0])) {
+                    videoId = pathParts[1];
+                } else if (urlObj.searchParams.has('u')) {
+                    // Attribution link edge case
+                    const nested = decodeURIComponent(urlObj.searchParams.get('u'));
+                    const nestedMatch = nested.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+                    if (nestedMatch) videoId = nestedMatch[1];
+                }
+            }
+
+
+            // Validate exact 11-character YouTube Video ID
+            if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+                return null;
+            }
+
+
+            // Collect removed clutter parameters and timestamp
+            const removedParams = [];
+            let timestamp = null;
+
+
+            for (const [key, val] of urlObj.searchParams.entries()) {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey === 't' || lowerKey === 'start' || lowerKey === 'time_continue') {
+                    timestamp = normalizeTimestamp(val);
+                    removedParams.push(key);
+                } else if (lowerKey !== 'v') {
+                    removedParams.push(key);
+                }
+            }
+
+
+            // Also check hash for #t=
+            if (!timestamp && urlObj.hash) {
+                const hashMatch = urlObj.hash.match(/[#&?]t=([a-zA-Z0-9]+)/);
+                if (hashMatch) {
+                    timestamp = normalizeTimestamp(hashMatch[1]);
+                }
+            }
+
+
+            // Identify source format type (e.g. Shorts, Playlist, Live, Music)
+            let sourceType = 'Standard';
+            if (pathParts[0] === 'shorts') sourceType = 'YouTube Short';
+            else if (pathParts[0] === 'live') sourceType = 'Livestream';
+            else if (pathParts[0] === 'embed') sourceType = 'Embed Link';
+            else if (host === 'music.youtube.com') sourceType = 'YouTube Music';
+            else if (urlObj.searchParams.has('list')) sourceType = 'Playlist Link';
+            else if (host === 'youtu.be' && urlObj.searchParams.has('si')) sourceType = 'Share Link (Tracked)';
+            else if (host === 'm.youtube.com') sourceType = 'Mobile Link';
+
+
+            return {
+                originalUrl: cleanCandidate,
+                videoId,
+                timestamp,
+                removedParams: [...new Set(removedParams)],
+                sourceType
+            };
+        }
+
+
+        /**
+         * Builds the final shortened URL according to current toggle settings
+         */
+        function buildShortUrl(item, includeProtocol, keepTimestamp) {
+            const prefix = includeProtocol ? 'https://' : '';
+            let short = `${prefix}youtu.be/${item.videoId}`;
+            if (keepTimestamp && item.timestamp) {
+                short += `?t=${item.timestamp}`;
+            }
+            return short;
+        }
+
+
+        /**
+         * Main handler triggered on every input or option change
+         */
+        function processInput() {
+            const rawText = inputEl.value;
+            const includeProtocol = document.getElementById('opt-protocol').checked;
+            const keepTimestamp = document.getElementById('opt-timestamp').checked;
+            const dedupe = document.getElementById('opt-dedupe').checked;
+            const replaceInText = document.getElementById('opt-replace-text').checked;
+
+
+            // Show/hide clear button
+            if (rawText.trim().length > 0) {
+                btnClear.classList.remove('hidden');
+                btnClear.classList.add('inline-flex');
+            } else {
+                btnClear.classList.add('hidden');
+                btnClear.classList.remove('inline-flex');
+                showEmptyState();
+                return;
+            }
+
+
+            // Regex to match any URL or domain-like token containing youtube or youtu.be
+            const tokenRegex = /(?:https?:\/\/)?(?:www\.|m\.|music\.|gaming\.)?(?:youtube(?:-nocookie)?\.com\/[^\s"'<>]+|youtu\.be\/[^\s"'<>]+)/gi;
+
+
+            const matches = [];
+            let match;
+            while ((match = tokenRegex.exec(rawText)) !== null) {
+                const analyzed = analyzeYouTubeCandidate(match[0]);
+                if (analyzed) {
+                    analyzed.shortUrl = buildShortUrl(analyzed, includeProtocol, keepTimestamp);
+                    analyzed.savedChars = Math.max(0, analyzed.originalUrl.length - analyzed.shortUrl.length);
+                    analyzed.savedPercent = analyzed.originalUrl.length > 0
+                        ? Math.round((analyzed.savedChars / analyzed.originalUrl.length) * 100)
+                        : 0;
+                    matches.push(analyzed);
+                }
+            }
+
+
+            // Also support pasting just a raw 11-character ID if the entire input is 11 chars
+            const trimmedInput = rawText.trim();
+            if (matches.length === 0 && /^[a-zA-Z0-9_-]{11}$/.test(trimmedInput)) {
+                const item = {
+                    originalUrl: trimmedInput,
+                    videoId: trimmedInput,
+                    timestamp: null,
+                    removedParams: [],
+                    sourceType: 'Raw Video ID'
+                };
+                item.shortUrl = buildShortUrl(item, includeProtocol, keepTimestamp);
+                item.savedChars = 0;
+                item.savedPercent = 0;
+                matches.push(item);
+            }
+
+
+            if (matches.length === 0) {
+                renderNoValidLinksState();
+                return;
+            }
+
+
+            // Filter duplicates if enabled
+            const finalItems = [];
+            const seenIds = new Set();
+            for (const item of matches) {
+                const key = keepTimestamp && item.timestamp ? `${item.videoId}_${item.timestamp}` : item.videoId;
+                if (dedupe) {
+                    if (!seenIds.has(key)) {
+                        seenIds.add(key);
+                        finalItems.push(item);
+                    }
+                } else {
+                    finalItems.push(item);
+                }
+            }
+
+
+            emptyStateEl.classList.add('hidden');
+
+
+            // Render Replaced Text box if option is checked
+            if (replaceInText) {
+                const replacedText = rawText.replace(tokenRegex, (matchedToken) => {
+                    // Preserve any trailing punctuation that was stripped
+                    const trailingMatch = matchedToken.match(/([.,;!?)\]>'"]+)$/);
+                    const trailing = trailingMatch ? trailingMatch[1] : '';
+                    const analyzed = analyzeYouTubeCandidate(matchedToken);
+                    if (!analyzed) return matchedToken;
+                    return buildShortUrl(analyzed, includeProtocol, keepTimestamp) + trailing;
+                });
+                renderReplacedText(replacedText, finalItems.length);
+            } else {
+                replacedTextResultEl.classList.add('hidden');
+            }
+
+
+            // Render Single or Bulk View
+            if (finalItems.length === 1 && !replaceInText) {
+                bulkResultEl.classList.add('hidden');
+                renderSingleResult(finalItems[0]);
+            } else {
+                singleResultEl.classList.add('hidden');
+                renderBulkResults(finalItems, matches.length - finalItems.length);
+            }
+        }
+
+
+        function showEmptyState() {
+            emptyStateEl.classList.remove('hidden');
+            singleResultEl.classList.add('hidden');
+            bulkResultEl.classList.add('hidden');
+            replacedTextResultEl.classList.add('hidden');
+        }
+
+
+        function renderNoValidLinksState() {
+            emptyStateEl.classList.add('hidden');
+            bulkResultEl.classList.add('hidden');
+            replacedTextResultEl.classList.add('hidden');
+            singleResultEl.classList.remove('hidden');
+            singleResultEl.innerHTML = `
+                <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-4 text-center">
+                    <p class="font-medium text-amber-800 dark:text-amber-300 text-xs sm:text-sm">
+                        No valid YouTube URLs found.
+                    </p>
+                </div>
+            `;
+        }
+
+
+        /**
+         * Renders compact single link card
+         */
+        function renderSingleResult(item) {
+            singleResultEl.classList.remove('hidden');
+            const clickableHref = item.shortUrl.startsWith('http') ? item.shortUrl : 'https://' + item.shortUrl;
+
+
+            singleResultEl.innerHTML = `
+                <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+                        
+                        <!-- Compact Thumbnail Preview -->
+                        <a href="${escapeHtml(clickableHref)}" target="_blank" rel="noopener noreferrer" class="group relative w-full sm:w-28 aspect-video rounded-lg overflow-hidden bg-zinc-950 border border-slate-200 dark:border-zinc-800 shrink-0 block">
+                            <img 
+                                src="https://i.ytimg.com/vi/${escapeHtml(item.videoId)}/mqdefault.jpg" 
+                                alt="Thumbnail preview"
+                                onerror="this.src='https://placehold.co/320x180/18181b/ffffff?text=' + '${escapeHtml(item.videoId)}'"
+                                class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            />
+                        </a>
+
+
+                        <!-- Link Output & Actions -->
+                        <div class="flex-1 min-w-0 space-y-2">
+                            <div class="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-zinc-400">
+                                <span class="font-medium text-emerald-600 dark:text-emerald-400">Short URL (${item.shortUrl.length} chars)</span>
+                                ${item.savedChars > 0 ? `<span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">-${item.savedChars} chars (-${item.savedPercent}%)</span>` : ''}
+                            </div>
+
+
+                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-1.5 pl-3">
+                                <input 
+                                    type="text" 
+                                    readonly 
+                                    value="${escapeHtml(item.shortUrl)}" 
+                                    onclick="this.select()"
+                                    class="w-full bg-transparent font-mono text-sm sm:text-base font-bold text-slate-900 dark:text-white focus:outline-none select-all"
+                                />
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <button onclick="copyText('${escapeJs(item.shortUrl)}', 'Copied!', this)" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                        <span>Copy</span>
+                                    </button>
+                                    <button onclick="shareUrl('${escapeJs(clickableHref)}')" class="p-2 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 transition" title="Share">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+                                    </button>
+                                    <a href="${escapeHtml(clickableHref)}" target="_blank" rel="noopener noreferrer" class="p-2 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 transition" title="Open">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+            `;
+        }
+
+
+        /**
+         * Renders Replaced Text Box when "In-text mode" is active
+         */
+        function renderReplacedText(replacedText, count) {
+            replacedTextResultEl.classList.remove('hidden');
+            replacedTextResultEl.innerHTML = `
+                <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                            Cleaned Text (${count} ${count === 1 ? 'link' : 'links'} shortened)
+                        </span>
+                        <button onclick="copyReplacedText()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition">
+                            Copy All
+                        </button>
+                    </div>
+                    <textarea id="replaced-textarea" readonly rows="4" class="w-full rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 p-3 text-xs sm:text-sm font-mono text-slate-800 dark:text-zinc-200 focus:outline-none">${escapeHtml(replacedText)}</textarea>
+                </div>
+            `;
+        }
+
+
+        /**
+         * Renders Collection / Bulk list of shortened links
+         */
+        function renderBulkResults(items) {
+            bulkResultEl.classList.remove('hidden');
+            const allShortLinksText = items.map(i => i.shortUrl).join('\n');
+
+
+            const rowsHtml = items.map((item, idx) => {
+                const clickableHref = item.shortUrl.startsWith('http') ? item.shortUrl : 'https://' + item.shortUrl;
+                return `
+                    <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <a href="${escapeHtml(clickableHref)}" target="_blank" rel="noopener noreferrer" class="w-16 aspect-video rounded overflow-hidden bg-zinc-950 shrink-0 border border-slate-200 dark:border-zinc-800">
+                                <img src="https://i.ytimg.com/vi/${escapeHtml(item.videoId)}/mqdefault.jpg" alt="" class="w-full h-full object-cover" />
+                            </a>
+                            <div class="min-w-0">
+                                <span class="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate block select-all">${escapeHtml(item.shortUrl)}</span>
+                                ${item.savedChars > 0 ? `<span class="text-[11px] text-emerald-600 dark:text-emerald-400">-${item.savedChars} chars (-${item.savedPercent}%)</span>` : ''}
+                            </div>
+                        </div>
+
+
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button onclick="copyText('${escapeJs(item.shortUrl)}', 'Link #${idx + 1} copied!', this)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-red-600 hover:text-white dark:bg-zinc-800 dark:hover:bg-red-600 text-slate-700 dark:text-zinc-200 text-xs font-semibold transition">
+                                <span>Copy</span>
+                            </button>
+                            <button onclick="shareUrl('${escapeJs(clickableHref)}')" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 transition" title="Share">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+                            </button>
+                            <a href="${escapeHtml(clickableHref)}" target="_blank" rel="noopener noreferrer" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 transition" title="Open">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+
+            bulkResultEl.innerHTML = `
+                <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 space-y-2.5 shadow-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="font-semibold text-xs sm:text-sm">${items.length} ${items.length === 1 ? 'Link' : 'Links'} cleaned</span>
+                        <button onclick="copyAllLinks()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition">
+                            Copy All
+                        </button>
+                    </div>
+                    <textarea id="bulk-clean-list" readonly rows="${Math.min(4, items.length)}" onclick="this.select()" class="w-full rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 p-2.5 text-xs sm:text-sm font-mono text-slate-800 dark:text-zinc-200 focus:outline-none">${escapeHtml(allShortLinksText)}</textarea>
+                </div>
+                <div class="space-y-2">
+                    ${rowsHtml}
+                </div>
+            `;
+        }
+
+
+        // ==========================================
+        // Clipboard, Share & Demo Helpers
+        // ==========================================
+
+
+        function copyText(text, successMsg = 'Copied to clipboard!', btnEl = null) {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            tempInput.style.position = 'fixed';
+            tempInput.style.opacity = '0';
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast(successMsg, 'success');
+                if (btnEl) {
+                    const span = btnEl.querySelector('span');
+                    if (span) {
+                        const original = span.textContent;
+                        span.textContent = 'Copied!';
+                        setTimeout(() => { span.textContent = original; }, 1500);
+                    }
+                }
+            } catch (err) {
+                showToast('Failed to copy', 'error');
+            }
+            document.body.removeChild(tempInput);
+        }
+
+
+        function copyAllLinks() {
+            const listEl = document.getElementById('bulk-clean-list');
+            if (listEl) {
+                copyText(listEl.value, 'All short links copied!');
+            }
+        }
+
+
+        function copyReplacedText() {
+            const area = document.getElementById('replaced-textarea');
+            if (area) {
+                copyText(area.value, 'Cleaned text copied!');
+            }
+        }
+
+
+        async function pasteFromClipboard() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        inputEl.value = text;
+                        processInput();
+                        showToast('Pasted from clipboard!', 'success');
+                        return;
+                    }
+                }
+            } catch (err) {
+                // Fallback if iframe/browser blocks readText
+            }
+            inputEl.focus();
+            showToast('Press Ctrl+V (or Cmd+V) inside the text box', 'info');
+        }
+
+
+        async function shareUrl(url) {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'YouTube Video',
+                        url: url
+                    });
+                } catch (e) {
+                    // User cancelled share
+                }
+            } else {
+                copyText(url, 'Link copied to share!');
+            }
+        }
+
+
+        function clearInput() {
+            inputEl.value = '';
+            processInput();
+            inputEl.focus();
+        }
+
+
+        function loadSingleDemo() {
+            inputEl.value = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1&rv=dQw4w9WgXcQ&t=42s&pp=gAQBiAQB&si=9fK8xL2mP0qW1zR5';
+            processInput();
+            showToast('Demo link loaded!', 'info');
+        }
+
+
+        // ==========================================
+        // UI Utilities (Theme, Toast, Escaping)
+        // ==========================================
+
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+        }
+
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-emerald-500/40',
+                info: 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-sky-500/40',
+                error: 'bg-rose-600 text-white border-rose-400'
+            };
+
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl border shadow-xl text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${colors[type] || colors.success}`;
+            toast.innerHTML = `
+                <span class="w-2 h-2 rounded-full ${type === 'error' ? 'bg-white' : 'bg-emerald-500'}"></span>
+                <span>${escapeHtml(message)}</span>
+            `;
+
+
+            container.appendChild(toast);
+
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+
+        function escapeJs(str) {
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+    </script>
+</body>
+</html>
