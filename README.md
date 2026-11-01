@@ -4,7 +4,7 @@ A clean, fast, and privacy-focused client-side web utility that strips tracking 
 (`?si=...`), playlist clutter (`&list=...`), and excess parameters from YouTube URLs, reducing
 them to their shortest valid `youtu.be` format.
 
-[View Live Demo](https://Jorgoi.github.io/TinyTube/)
+[View Live Demo](https://jorgoi.github.io/TinyTube/)
 ![TinyTube Screenshot](Sreenshot.png)
 ---
 ## Why TinyTube?
