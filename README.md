@@ -1,11 +1,12 @@
-# TinyTube
+## TinyTube
 TinyTube trims any YouTube URL to its shortest possible format.
 A clean, fast, and privacy-focused client-side web utility that strips tracking parameters
 (`?si=...`), playlist clutter (`&list=...`), and excess parameters from YouTube URLs, reducing
 them to their shortest valid `youtu.be` format.
 -
 ## Live Demo
-(https://Jorgoi.github.io/TinyTube/)
+
+https://Jorgoi.github.io/TinyTube/
 
 ![TinyTube screenshot](Screenshot.png)
 ---
